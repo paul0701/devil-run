@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#04060f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Devil Run">
+<title>Devil Run</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root { --red:#e0182a; --cyan:#6fe3ff; --ink:#04060f; --glass:rgba(8,12,28,.78); }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; background:var(--ink); overflow:hidden; overscroll-behavior:none;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#fff; user-select:none; -webkit-user-select:none; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  .vignette { position:fixed; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 55%, transparent 55%, rgba(0,0,0,.55) 100%); }
+  #hud { position:fixed; left:0; right:0; top:max(10px,env(safe-area-inset-top)); display:flex; gap:0; margin:0 14px;
+    border:1px solid rgba(120,160,220,.35); background:var(--glass); pointer-events:none; }
+  #hud[hidden], #speed[hidden] { display:none; }
+  #hud > div { flex:1; padding:8px 14px 9px; }
+  #hud > div + div { border-left:1px solid rgba(120,160,220,.35); }
+  #hud small { display:block; font-size:11px; letter-spacing:.22em; color:#9fb3d6; }
+  #hud b { display:block; font-size:28px; letter-spacing:.06em; margin-top:2px; font-weight:600; }
+  #speed { position:fixed; right:18px; bottom:max(18px,env(safe-area-inset-bottom)); text-align:right; pointer-events:none;
+    font-size:13px; letter-spacing:.2em; color:#9fb3d6; text-shadow:0 0 8px #000; }
+  #speed b { display:block; font-size:34px; color:#fff; letter-spacing:.04em; }
+  #pop { position:fixed; left:0; right:0; top:32%; text-align:center; font-size:26px; font-weight:700; letter-spacing:.14em;
+    color:#ffd75e; text-shadow:0 0 14px rgba(255,120,0,.8),0 2px 0 #000; opacity:0; pointer-events:none; }
+  #pop.show { animation:pop 1s ease-out; }
+  @keyframes pop { 0%{opacity:0;transform:translateY(14px) scale(.8)} 15%{opacity:1;transform:translateY(0) scale(1.05)} 70%{opacity:1} 100%{opacity:0;transform:translateY(-24px)} }
+  #hint { position:fixed; left:0; right:0; bottom:22%; text-align:center; font-size:15px; letter-spacing:.16em; color:#cfe6ff;
+    text-shadow:0 0 10px #000; opacity:0; pointer-events:none; transition:opacity .5s; }
+  #hint.show { opacity:.95; }
+  .screen { position:fixed; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; padding:24px;
+    background:linear-gradient(180deg,rgba(4,6,15,.55),rgba(4,6,15,.8)); text-align:center; }
+  .screen.show { display:flex; }
+  h1 { margin:0; font-size:clamp(46px,16vw,84px); line-height:.92; letter-spacing:.04em; font-weight:800; color:#fff;
+    text-shadow:0 0 22px rgba(224,24,42,.85),0 4px 0 #6a0a14; }
+  h1 span { color:var(--red); }
+  .tag { margin:14px 0 26px; color:#9fb3d6; font-size:14px; letter-spacing:.14em; }
+  .row { display:flex; gap:10px; margin:6px 0 18px; }
+  button { font:inherit; color:#fff; border:1px solid rgba(120,160,220,.5); background:var(--glass); padding:12px 20px;
+    letter-spacing:.18em; font-size:14px; cursor:pointer; }
+  button.on { border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 14px rgba(111,227,255,.35) inset; }
+  button.go { background:var(--red); border-color:#ff6a76; font-weight:700; font-size:20px; padding:16px 44px; letter-spacing:.24em;
+    box-shadow:0 0 26px rgba(224,24,42,.6); }
+  button:active { transform:translateY(1px); }
+  .best { margin:0 0 18px; font-size:14px; letter-spacing:.2em; color:#ffd75e; }
+  .big { font-size:62px; font-weight:800; margin:6px 0 2px; }
+  .sub { color:#9fb3d6; letter-spacing:.16em; font-size:14px; margin:4px 0; }
+  .new { color:#ffd75e; font-weight:700; letter-spacing:.2em; margin:10px 0 0; min-height:20px; }
+  .note { margin-top:18px; font-size:12px; color:#6f84a8; letter-spacing:.08em; max-width:290px; line-height:1.5; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div class="vignette"></div>
+
+<div id="hud" hidden>
+  <div><small>SCORE</small><b id="score">0</b></div>
+  <div><small>TIME</small><b id="time">00:00</b></div>
+</div>
+<div id="speed" hidden><b id="mph">0</b>MPH</div>
+<div id="pop"></div>
+<div id="hint"></div>
+
+<div id="menu" class="screen show">
+  <h1>DEVIL<br><span>RUN</span></h1>
+  <p class="tag">NIGHT TRAFFIC. NO BRAKES.</p>
+  <p class="best" id="menuBest"></p>
+  <div class="row">
+    <button id="mSwipe" class="on">SWIPE</button>
+    <button id="mTilt">TILT</button>
+  </div>
+  <button id="play" class="go">PLAY</button>
+  <p class="note" id="menuNote">Drag anywhere on the screen to steer.</p>
+</div>
+
+<div id="over" class="screen">
+  <p class="sub">CRASHED</p>
+  <div class="big" id="finalScore">0</div>
+  <p class="sub" id="finalTime">00:00</p>
+  <p class="new" id="newBest"></p>
+  <p class="best" id="overBest"></p>
+  <div class="row">
+    <button id="again" class="go">AGAIN</button>
+  </div>
+  <button id="toMenu">MENU</button>
+</div>
+
+<script src="game.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>
