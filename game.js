@@ -935,7 +935,13 @@ function drawPlayer(cx, base, w, steerV, spin, bob, lift) {
   ctx.fillStyle = '#ff9aa2';
   ctx.fillRect(cx - w * 0.41, y - w * 0.39, w * 0.12, w * 0.015); ctx.fillRect(cx + w * 0.29, y - w * 0.39, w * 0.12, w * 0.015);
   // plate, exhausts, antenna
-  ctx.fillStyle = '#e8ecf5'; ctx.fillRect(cx - w * 0.1, y - w * 0.31, w * 0.2, w * 0.065);
+  ctx.fillStyle = '#f2f4fa'; ctx.fillRect(cx - w * 0.14, y - w * 0.325, w * 0.28, w * 0.085);
+  ctx.fillStyle = '#1a2a6a'; ctx.fillRect(cx - w * 0.14, y - w * 0.325, w * 0.025, w * 0.085);
+  if (w > 40) {
+    ctx.fillStyle = '#10131c'; ctx.font = '800 ' + Math.round(w * 0.066) + 'px ui-monospace,Menlo,monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('JUD3', cx + w * 0.012, y - w * 0.2825);
+  }
   ctx.fillStyle = '#9aa3bd'; ctx.beginPath(); ctx.arc(cx - w * 0.25, y - w * 0.1, w * 0.05, 0, Math.PI * 2); ctx.arc(cx + w * 0.25, y - w * 0.1, w * 0.05, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#05060a'; ctx.beginPath(); ctx.arc(cx - w * 0.25, y - w * 0.1, w * 0.032, 0, Math.PI * 2); ctx.arc(cx + w * 0.25, y - w * 0.1, w * 0.032, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#0a0c12'; ctx.lineWidth = Math.max(1, w * 0.012);
