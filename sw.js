@@ -1,4 +1,4 @@
-const CACHE = 'devil-run-v1';
+const CACHE = 'devil-run-v2';
 const ASSETS = ['./', './index.html', './game.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {

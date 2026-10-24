@@ -93,7 +93,21 @@
   <button id="toMenu">MENU</button>
 </div>
 
+<script>
+  window.addEventListener('error', function (e) {
+    var n = document.getElementById('menuNote');
+    if (n) n.textContent = 'Error: ' + e.message;
+  });
+</script>
 <script src="game.js"></script>
+<script>
+  setTimeout(function () {
+    if (!window.__devilrun) {
+      var n = document.getElementById('menuNote');
+      if (n) n.textContent = 'game.js did not load. Check it is in the same folder as index.html.';
+    }
+  }, 1500);
+</script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
