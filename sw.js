@@ -1,4 +1,4 @@
-const CACHE = 'devil-run-v2';
+const CACHE = 'devil-run-v3';
 const ASSETS = ['./', './index.html', './game.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -13,6 +13,7 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
+  if (req.url.endsWith('.mp3')) return;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
     caches.match(req).then((cached) => {
