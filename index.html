@@ -33,6 +33,14 @@
   #power[hidden] { display:none; }
   #power span { border:1px solid currentColor; background:var(--glass); padding:5px 9px; font-size:12px; font-weight:700; letter-spacing:.14em; }
   #mute { position:fixed; left:14px; bottom:max(18px,env(safe-area-inset-bottom)); z-index:5; padding:8px 11px; font-size:11px; letter-spacing:.16em; }
+  #turbo { position:fixed; right:16px; bottom:calc(max(18px,env(safe-area-inset-bottom)) + 88px); z-index:5; width:82px; height:82px; border-radius:50%;
+    padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.05;
+    background:radial-gradient(circle at 50% 35%, #ffb25c, #e0620f); border:2px solid #ffe0b0; color:#1a0a00; box-shadow:0 0 22px rgba(255,140,40,.7); animation:ready 1s ease-in-out infinite; touch-action:manipulation; }
+  #turbo[hidden] { display:none; }
+  #turbo small { font-size:10px; letter-spacing:.14em; font-weight:700; }
+  #turbo b { font-size:24px; }
+  #turbo.active { animation:none; background:radial-gradient(circle at 50% 35%, #fff3c0, #ff9a2a); box-shadow:0 0 34px rgba(255,200,80,.95); }
+  @keyframes ready { 50% { transform:scale(1.07); box-shadow:0 0 34px rgba(255,160,60,.95); } }
   #pop { position:fixed; left:0; right:0; top:32%; text-align:center; font-size:26px; font-weight:700; letter-spacing:.14em;
     color:#ffd75e; text-shadow:0 0 14px rgba(255,120,0,.8),0 2px 0 #000; opacity:0; pointer-events:none; }
   #pop.show { animation:pop 1s ease-out; }
@@ -70,6 +78,7 @@
   <div><small>TIME</small><b id="time">00:00</b></div>
 </div>
 <div id="power" hidden></div>
+<button id="turbo" hidden></button>
 <button id="mute">MUSIC ON</button>
 <div id="speed" hidden><b id="mph">0</b>MPH</div>
 <div id="pop"></div>
@@ -77,7 +86,7 @@
 
 <div id="menu" class="screen show">
   <h1>DEVIL<br><span>RUN</span></h1>
-  <p class="tag">NIGHT TRAFFIC. NO BRAKES.</p>
+  <p class="tag">UNDERCOVER. NO BRAKES.</p>
   <p class="best" id="menuBest"></p>
   <div class="row">
     <button id="mSwipe" class="on">SWIPE</button>
@@ -91,6 +100,7 @@
   <p class="sub">CRASHED</p>
   <div class="big" id="finalScore">0</div>
   <p class="sub" id="finalTime">00:00</p>
+  <p class="sub" id="finalBusts"></p>
   <p class="new" id="newBest"></p>
   <p class="best" id="overBest"></p>
   <div class="row">
