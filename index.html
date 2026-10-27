@@ -124,6 +124,11 @@
     }
   }, 1500);
 </script>
+<script src="account.js" defer></script>
+<script>
+  if (window.Account) Account.init({ game: 'devil-run', title: 'Devil Run' });
+  else window.addEventListener('DOMContentLoaded', function () { if (window.Account) Account.init({ game: 'devil-run', title: 'Devil Run' }); });
+</script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

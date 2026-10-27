@@ -489,6 +489,7 @@ function gameOver() {
   el.overBest.textContent = 'BEST ' + best;
   el.hud.hidden = true; el.speed.hidden = true; el.power.hidden = true;
   el.over.classList.add('show');
+  if (window.Account) Account.reportBest(sc);
 }
 
 /* ---------- update ---------- */
