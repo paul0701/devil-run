@@ -126,8 +126,8 @@
 </script>
 <script src="account.js" defer></script>
 <script>
-  if (window.Account) Account.init({ game: 'devil-run', title: 'Devil Run' });
-  else window.addEventListener('DOMContentLoaded', function () { if (window.Account) Account.init({ game: 'devil-run', title: 'Devil Run' }); });
+  if (window.Account) Account.init({ game: 'devil-run', title: 'Devil Run', apiBase: 'https://agnostic.accounts.agnosticsolutions.co.uk' });
+  else window.addEventListener('DOMContentLoaded', function () { if (window.Account) Account.init({ game: 'devil-run', title: 'Devil Run', apiBase: 'https://agnostic.accounts.agnosticsolutions.co.uk' }); });
 </script>
 <script>
   if ('serviceWorker' in navigator) {
