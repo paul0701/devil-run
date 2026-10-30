@@ -1,5 +1,5 @@
-const CACHE = 'devil-run-v6';
-const ASSETS = ['./', './index.html', './game.js', './account.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'devil-run-v7';
+const ASSETS = ['./season-guard.js', './', './index.html', './game.js', './account.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
