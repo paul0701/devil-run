@@ -67,6 +67,11 @@
   .big { font-size:62px; font-weight:800; margin:6px 0 2px; }
   .sub { color:#9fb3d6; letter-spacing:.16em; font-size:14px; margin:4px 0; }
   .new { color:#ffd75e; font-weight:700; letter-spacing:.2em; margin:10px 0 0; min-height:20px; }
+  .track { display:flex; align-items:center; gap:10px; margin:0 0 18px; }
+  .track button { padding:8px 14px; font-size:18px; letter-spacing:0; }
+  .track span { min-width:120px; display:flex; flex-direction:column; letter-spacing:.18em; }
+  .track small { font-size:10px; color:#6f84a8; }
+  .track b { font-size:14px; color:var(--cyan); }
   .note { margin-top:18px; font-size:12px; color:#6f84a8; letter-spacing:.08em; max-width:290px; line-height:1.5; }
 </style>
 </head>
@@ -92,6 +97,11 @@
   <div class="row">
     <button id="mSwipe" class="on">SWIPE</button>
     <button id="mTilt">TILT</button>
+  </div>
+  <div class="track" aria-label="Music">
+    <button id="tPrev" aria-label="Previous track">&lsaquo;</button>
+    <span><small>MUSIC</small><b id="tName">ORIGINAL</b></span>
+    <button id="tNext" aria-label="Next track">&rsaquo;</button>
   </div>
   <button id="play" class="go">PLAY</button>
   <p class="note" id="menuNote">Drag anywhere on the screen to steer.</p>

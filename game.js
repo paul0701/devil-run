@@ -331,7 +331,13 @@ function inputSteer() {
 }
 
 /* ---------- music ---------- */
-const music = new Audio('music.mp3');
+// Tracks for the menu's music picker. Only the chosen one is downloaded. Credits in music/CREDITS.txt.
+const TRACKS = [
+  ['ORIGINAL', 'music.mp3'], ['RETRO', 'music/retro.mp3'], ['ARCADE', 'music/arcade.mp3'],
+  ['CHILL', 'music/chill.mp3'], ['DRIVE', 'music/drive.mp3'], ['SPOOKY', 'music/spooky.mp3']
+];
+let track = Math.max(0, TRACKS.findIndex((t) => t[1] === store('devilrun.track')));
+const music = new Audio(TRACKS[track][1]);
 music.loop = true; music.volume = 0.55; music.preload = 'auto';
 let muted = store('devilrun.muted') === '1';
 music.muted = muted;
@@ -377,6 +383,16 @@ el.mute.addEventListener('click', () => {
   paintMute();
 });
 paintMute();
+function setTrack(i) {
+  track = (i + TRACKS.length) % TRACKS.length;
+  store('devilrun.track', TRACKS[track][1]);
+  $('tName').textContent = TRACKS[track][0];
+  music.src = TRACKS[track][1];
+  playMusic();   // a tap, so the browser lets it play: a short preview on the menu, then on into the run
+}
+$('tName').textContent = TRACKS[track][0];
+$('tPrev').addEventListener('click', () => setTrack(track - 1));
+$('tNext').addEventListener('click', () => setTrack(track + 1));
 el.play.addEventListener('click', () => startGame());
 el.again.addEventListener('click', () => startGame());
 el.turbo.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); activateTurbo(); });
