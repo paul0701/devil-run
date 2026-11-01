@@ -1,4 +1,4 @@
-const CACHE = 'devil-run-v8';
+const CACHE = 'devil-run-v9';
 const ASSETS = ['./season-guard.js', './', './index.html', './game.js', './account.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {

@@ -405,11 +405,159 @@ function hint(text, ms) {
   popTimer = setTimeout(() => el.hint.classList.remove('show'), ms);
 }
 
+/* ---------- storm ---------- */
+// Add ?storm to the address to try it: first storm after 6 seconds, then one every 16.
+const DEMO = /[?&]storm\b/.test(location.search);
+const STORM = {
+  first: DEMO ? 6 : 45,                    // seconds of driving before the first storm
+  gap: DEMO ? [16, 16] : [50, 75],         // calm time between storms
+  warn: 3.2,                               // thunderclouds flash up ahead before the rain
+  len: DEMO ? [12, 12] : [12, 15],         // how long the rain lasts
+  fadeIn: 1.4, fadeOut: 2.2,
+  grip: 4.5,                               // steering response in the rain (14 on a dry road); lower is slidier
+  sway: 0.17,                              // steady sideways wander
+  skid: 0.2,                               // size of the sudden slips (a lane is 0.667)
+  reward: 500                              // for getting through it
+};
+let stormPhase = 'idle', stormT = 0, stormNext = STORM.first, stormLen = 12, stormK = 0, cloudK = 0;
+let bolt = 0, boltPts = [], nextBolt = 2, nextSkid = 2.5, skidT = 0, skidV = 0;
+
+let actx = null, rainGain = null;
+function audio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
+  if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+  return actx;
+}
+function noise(a, sec) {
+  const b = a.createBuffer(1, Math.floor(a.sampleRate * sec), a.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return b;
+}
+function thunder(delay, power) {
+  if (muted) return;
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay;
+  const src = a.createBufferSource(); src.buffer = noise(a, 2.8);
+  const lp = a.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(70, t + 2.4);
+  const g = a.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9 * power, t + 0.06);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 2.6);
+  src.connect(lp); lp.connect(g); g.connect(a.destination); src.start(t); src.stop(t + 2.8);
+}
+function rainStart() {
+  const a = audio(); if (!a || rainGain) return;
+  const src = a.createBufferSource(); src.buffer = noise(a, 2); src.loop = true;
+  const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1400;
+  rainGain = a.createGain(); rainGain.gain.value = 0;
+  src.connect(hp); hp.connect(rainGain); rainGain.connect(a.destination); src.start();
+  rainGain._src = src;
+}
+function rainStop() {
+  if (!rainGain) return;
+  try { rainGain._src.stop(); rainGain.disconnect(); } catch (e) {}
+  rainGain = null;
+}
+function stormReset() {
+  stormPhase = 'idle'; stormT = 0; stormNext = STORM.first; stormK = 0; cloudK = 0; bolt = 0;
+  skidT = 0; skidV = 0; nextBolt = 2; nextSkid = 2.5; rainStop();
+}
+function strike() {
+  bolt = 1;
+  const x = rnd(0.12, 0.88) * W, pts = [[x, 0]];
+  let y = 0;
+  while (y < HORIZON) { y += rnd(0.06, 0.12) * HORIZON; pts.push([pts[pts.length - 1][0] + rnd(-0.05, 0.05) * W, Math.min(y, HORIZON)]); }
+  boltPts = pts;
+}
+function updateStorm(dt, active) {
+  bolt = Math.max(0, bolt - dt * 3.2);
+  if (!active) {   // crashed, game over or menu: let the weather drain away
+    stormK = Math.max(0, stormK - dt / STORM.fadeOut); cloudK = Math.max(0, cloudK - dt / STORM.fadeOut);
+    if (stormK === 0) rainStop();
+    if (rainGain) rainGain.gain.value = muted ? 0 : 0.08 * stormK;
+    return;
+  }
+  if (stormPhase === 'idle') {
+    if (elapsed >= stormNext) {
+      stormPhase = 'warn'; stormT = 0;
+      pop('STORM AHEAD'); strike(); thunder(0.5, 0.5);
+    }
+  } else if (stormPhase === 'warn') {
+    stormT += dt;
+    cloudK = Math.min(1, stormT / 1.2);
+    if (stormT > 1.5 && stormT - dt <= 1.5) { strike(); thunder(0.6, 0.6); }
+    if (stormT >= STORM.warn) {
+      stormPhase = 'on'; stormT = 0; stormLen = rnd(STORM.len[0], STORM.len[1]);
+      nextBolt = rnd(1, 2); nextSkid = rnd(2, 3);
+      rainStart(); hint('KEEP IT STEADY', 2400);
+    }
+  } else if (stormPhase === 'on') {
+    stormT += dt;
+    stormK = Math.min(1, stormT / STORM.fadeIn);
+    nextBolt -= dt; nextSkid -= dt;
+    if (nextBolt <= 0) { nextBolt = rnd(1.4, 3.4); strike(); thunder(rnd(0.3, 1.1), rnd(0.5, 1)); }
+    if (nextSkid <= 0) {
+      nextSkid = rnd(2.4, 4.2); skidT = 0.45; skidV = (Math.random() < 0.5 ? -1 : 1) * STORM.skid;
+      shake = Math.max(shake, 0.3);
+    }
+    if (stormT >= stormLen) {
+      stormPhase = 'clear'; stormT = 0;
+      bonus += STORM.reward; pop('STORM SURVIVED +' + STORM.reward);
+    }
+  } else if (stormPhase === 'clear') {
+    stormT += dt;
+    stormK = Math.max(0, 1 - stormT / STORM.fadeOut); cloudK = stormK;
+    if (stormT >= STORM.fadeOut) { stormPhase = 'idle'; stormK = 0; cloudK = 0; rainStop(); stormNext = elapsed + rnd(STORM.gap[0], STORM.gap[1]); }
+  }
+  if (rainGain) rainGain.gain.value = muted ? 0 : 0.08 * stormK;
+}
+function drawStorm() {
+  const k = stormK, c = cloudK;
+  if (c > 0.01) {
+    const g = ctx.createLinearGradient(0, 0, 0, HORIZON);
+    g.addColorStop(0, 'rgba(6,8,18,' + 0.95 * c + ')'); g.addColorStop(0.7, 'rgba(10,12,26,' + 0.7 * c + ')'); g.addColorStop(1, 'rgba(10,12,26,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, HORIZON);
+    ctx.fillStyle = 'rgba(14,16,34,' + 0.9 * c + ')';
+    const drift = skyOffset * 0.6 * S;
+    for (let i = 0; i < 9; i++) {
+      const x = (((i / 8) * W * 1.3 - drift) % (W * 1.3) + W * 1.3) % (W * 1.3) - W * 0.15;
+      ctx.beginPath(); ctx.ellipse(x, HORIZON * (0.12 + 0.07 * (i % 3)), W * 0.2, HORIZON * 0.13, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    if (bolt > 0.02) {   // lightning glowing inside the clouds
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = 'rgba(120,150,255,' + 0.35 * bolt * c + ')'; ctx.fillRect(0, 0, W, HORIZON * 0.6);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  if (k > 0.01) {
+    ctx.fillStyle = 'rgba(4,8,22,' + 0.3 * k + ')'; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(170,200,255,' + 0.38 * k + ')'; ctx.lineWidth = Math.max(1, W * 0.0018);
+    ctx.beginPath();
+    const n = Math.round(110 * k);
+    for (let i = 0; i < n; i++) {
+      const x = Math.random() * W * 1.15, y = Math.random() * H, len = S * rnd(0.05, 0.1);
+      ctx.moveTo(x, y); ctx.lineTo(x - len * 0.22, y + len);
+    }
+    ctx.stroke();
+  }
+  if (bolt > 0.02) {
+    if (bolt > 0.45 && boltPts.length > 1) {
+      ctx.strokeStyle = 'rgba(235,242,255,' + Math.min(1, bolt) + ')'; ctx.lineWidth = Math.max(2, W * 0.006);
+      ctx.shadowColor = 'rgba(150,180,255,1)'; ctx.shadowBlur = S * 0.05;
+      ctx.beginPath(); ctx.moveTo(boltPts[0][0], boltPts[0][1]);
+      for (let i = 1; i < boltPts.length; i++) ctx.lineTo(boltPts[i][0], boltPts[i][1]);
+      ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    ctx.fillStyle = 'rgba(190,210,255,' + 0.32 * bolt + ')'; ctx.fillRect(0, 0, W, H);
+  }
+}
+
 function startGame() {
   playMusic();
   buildTrack(); makeTraffic(); makePickups(); makeCrooks();
   shield = false; turboT = 0; turboCharges = 0; x2T = 0; scoreAcc = 0; busts = 0; parts = []; rings = [];
   position = 0; speed = MAX_SPEED * 0.4; playerX = 0; steer = 0;
+  stormReset(); audio();
   for (const c of cars) c.passed = rel(c.z) < 0;
   elapsed = 0; distance = 0; bonus = 0; shake = 0; crashT = 0; flash = 0; skyOffset = 0;
   tiltBase = tiltRaw;
@@ -479,6 +627,7 @@ function crash(car) {
 
 function gameOver() {
   state = 'over';
+  rainStop();
   const sc = currentScore();
   const isBest = sc > best;
   if (isBest) { best = sc; store('devilrun.best', String(best)); }
@@ -498,6 +647,7 @@ function update(dt) {
   const playing = state === 'playing';
   const playerSeg = findSegment(position + PLAYER_Z);
 
+  updateStorm(dt, playing);
   if (playing) {
     elapsed += dt;
     turboT = Math.max(0, turboT - dt); x2T = Math.max(0, x2T - dt);
@@ -508,9 +658,13 @@ function update(dt) {
     else speed = approach(speed, target, MAX_SPEED * (turboT > 0 ? 0.7 : 0.22) * dt);
 
     const want = inputSteer();
-    steer += (want - steer) * Math.min(1, dt * 14);
+    steer += (want - steer) * Math.min(1, dt * lerp(14, STORM.grip, stormK));
     const pct = speed / MAX_SPEED;
     playerX += steer * dt * (1.4 + 2.4 * pct);
+    if (stormK > 0) {   // wet road: the car wanders and now and then slips sideways
+      playerX += stormK * STORM.sway * (Math.sin(tAnim * 1.4) + 0.6 * Math.sin(tAnim * 2.7 + 1.3)) * dt * (0.5 + pct);
+      if (skidT > 0) { const d = Math.min(dt, skidT); playerX += skidV * (d / 0.45); skidT -= d; }
+    }
     playerX -= dt * 2 * Math.min(pct, 1) * Math.min(pct, 1) * playerSeg.curve * 0.26;
     if (playerX > 1.32) { playerX = 1.32; speed = approach(speed, MAX_SPEED * 0.3, MAX_SPEED * 0.6 * dt); shake = Math.max(shake, 0.3); }
     if (playerX < -1.32) { playerX = -1.32; speed = approach(speed, MAX_SPEED * 0.3, MAX_SPEED * 0.6 * dt); shake = Math.max(shake, 0.3); }
@@ -1099,6 +1253,7 @@ function render() {
   drawFx();
   ctx.restore();
 
+  drawStorm();
   if (flash > 0) {
     ctx.fillStyle = 'rgba(' + flashCol + ',' + (flash * 0.55) + ')';
     ctx.fillRect(0, 0, W, H);
@@ -1154,5 +1309,5 @@ requestAnimationFrame(frame);
 // small hook for tests
 window.__devilrun = {
   nearestCrook() { let b = null; for (const c of crooks) { if (c.dead) continue; const r = rel(c.z); if (r > 0 && (!b || r < b.r)) b = { r, off: c.offset }; } return b ? { r: b.r, off: b.off, px: playerX } : null; },
-  get busts() { return busts; }, get turbo() { return turboCharges; }, activateTurbo, startGame, get state() { return state; }, get score() { return currentScore(); }, setSteer(v) { keyDir = v; } };
+  get busts() { return busts; }, get turbo() { return turboCharges; }, activateTurbo, startGame, get state() { return state; }, get storm() { return { phase: stormPhase, k: stormK, cloud: cloudK, x: playerX }; }, stormNow() { stormNext = 0; }, get score() { return currentScore(); }, setSteer(v) { keyDir = v; } };
 })();
